@@ -3,7 +3,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const mongoose = require("mongoose");
-const encrypt = require("mongoose-encryption");
+const md5 = require("md5")
 
 const app = express();
 
@@ -22,8 +22,6 @@ async function main (){
         email: String,
         password: String
     })
-
-    userSchema.plugin(encrypt, { secret: process.env.SECRET , encryptedFields: ['password']});
     
 
     const User = new mongoose.model("User", userSchema);
@@ -40,10 +38,9 @@ async function main (){
             res.render("login", {msg: "",})
         })
         .post(async function(req, res){
-            await User.findOne({email: req.body.username})
+            await User.findOne({email: req.body.username, password: md5(req.body.password)})
             .then(resault => {
-                if (resault == null) res.render("login", {msg: "Wrong username or password",})
-                else if (resault.password != req.body.password) res.render("login", {msg: "Wrong username or password",})
+                if (resault == null) res.render("login", {msg: "Wrong username or password"})
                 else res.render("secrets")
             })
         })
@@ -56,7 +53,7 @@ async function main (){
         .post(async function(req, res){
             const newUser = User({
                 email: req.body.username,
-                password: req.body.password
+                password: md5(req.body.password)
             }) 
             newUser.save().then(() => res.render("secrets"))
             .catch(err => console.log(err))
