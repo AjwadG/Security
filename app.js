@@ -3,7 +3,8 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const mongoose = require("mongoose");
-const md5 = require("md5")
+const bcrypt = require("bcrypt");
+const saltRounds =10;
 
 const app = express();
 
@@ -38,10 +39,12 @@ async function main (){
             res.render("login", {msg: "",})
         })
         .post(async function(req, res){
-            await User.findOne({email: req.body.username, password: md5(req.body.password)})
-            .then(resault => {
-                if (resault == null) res.render("login", {msg: "Wrong username or password"})
+            await User.findOne({email: req.body.username})
+            .then(table => {
+            bcrypt.compare(req.body.password, table.password, async function(err, result) {
+                if (result === false) res.render("login", {msg: "Wrong username or password"})
                 else res.render("secrets")
+            });
             })
         })
 
@@ -50,15 +53,22 @@ async function main (){
         (function(req, res){
         res.render("register")
         })
+
         .post(async function(req, res){
+            bcrypt.hash(req.body.password, saltRounds, function(err, hash) {
+            
             const newUser = User({
                 email: req.body.username,
-                password: md5(req.body.password)
+                password: hash
             }) 
             newUser.save().then(() => res.render("secrets"))
             .catch(err => console.log(err))
+
+            });
         });
     
+
+
         app.get("/logout", function(req, res){
             res.redirect("/")
         })
